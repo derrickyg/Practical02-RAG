@@ -1,0 +1,11 @@
+PyMuPDF
+redis
+pytesseract
+pdf2image
+opencv-python
+numpy
+sentence-transformers
+chromadb
+pymilvus
+
+
