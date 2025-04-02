@@ -17,21 +17,27 @@ def extract_text_from_pdfs(folder_path):
     return all_text
 
 
-def preprocess_text(text):
-    text = re.sub(r'\s+', ' ', text)  
-    text = re.sub(r'[^\w\s]', '', text)  
+def preprocess_text(text, strategy=None):
+    if strategy == "remove_whitespace":
+        text = re.sub(r'\s+', ' ', text)
+    elif strategy == "remove_punctuation":
+        text = re.sub(r'[^\w\s]', '', text)
+    elif strategy == "remove_noise":
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'[^\w\s]', '', text)
     return text.strip().lower()
-
 
 def chunk_text(text, chunk_size=500, chunk_overlap=100):
     splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     return splitter.split_text(text)
 
 
-def ingest_documents(notes_path='Notes/', chunk_size=500, chunk_overlap=100):
+def ingest_documents(notes_path='Notes/', chunk_size=500, chunk_overlap=100, text_prep=None):
     raw_text = extract_text_from_pdfs(notes_path)
 
-    processed_texts = {filename: preprocess_text(text) for filename, text in raw_text.items()}
+    processed_texts = {
+        filename: preprocess_text(text, text_prep) for filename, text in raw_text.items()
+    }
 
     chunked_data = []
     for filename, text in processed_texts.items():
