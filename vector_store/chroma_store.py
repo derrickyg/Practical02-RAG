@@ -1,6 +1,7 @@
 # vector_store/chroma_store.py
 
 import chromadb
+from chromadb.config import Settings
 
 def create_chroma_client():
     return chromadb.HttpClient(host="localhost", port=8000)
@@ -27,3 +28,13 @@ def query_chroma(collection, query_embedding, top_k=3):
         n_results=top_k
     )
     return results
+
+def delete_chroma_collection(collection_name):
+    client = chromadb.HttpClient(host="localhost", port=8000)
+    try:
+        client.delete_collection(name=collection_name)
+        print(f" Deleted Chroma collection '{collection_name}'")
+    except chromadb.errors.InvalidArgumentError:
+        print(f" Collection '{collection_name}' does not exist, skipping delete.")
+    except Exception as e:
+        print(f" Failed to delete collection '{collection_name}': {e}")
