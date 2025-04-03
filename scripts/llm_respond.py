@@ -1,17 +1,22 @@
+# scripts/llm_respond
+
 import requests
 
 def generate_answer_ollama(context_chunks, query, model="llama2"):
     context = "\n\n".join(context_chunks)
 
-    prompt = f"""You are a helpful TA for a university-level data systems course (DS4300).
-You will be given a user question and relevant course notes. Provide a clear, direct answer.
+    prompt = f"""
+    
+    You are a helpful TA for a University Database Systems course (DS4300).
+    You will be given a student question and relevant course notes. Provide a concise answer
+    to aid the student.
 
-User Question: {query}
+    User Question: {query}
 
-Relevant Notes:
-{context}
+    Relevant Notes:
+    {context}
 
-Answer:"""
+    """
 
     try:
         response = requests.post(
@@ -22,19 +27,21 @@ Answer:"""
                 "stream": False
             }
         )
+
         response.raise_for_status()
         data = response.json()
 
+        # error logging when ollama does not return a response object
         if "response" not in data:
-            print(" Unexpected response structure:", data)
-            return "[Error: No 'response' key in Ollama output]"
+            print("Unexpected response", data)
+            return "No response returned from Ollama"
 
         return data["response"]
 
     except requests.exceptions.RequestException as e:
         print(f" Error calling Ollama API: {e}")
-        return "[Error: Ollama API call failed]"
+        return f"{e}"
 
     except Exception as e:
         print(f" Unexpected error: {e}")
-        return "[Error: Unexpected failure in LLM response]"
+        return f"{e}"
