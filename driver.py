@@ -4,8 +4,10 @@ from scripts.ingest import ingest_documents
 from scripts.embed import embed_chunks
 from scripts.llm_respond import generate_answer_ollama
 from vector_store.chroma_store import store_embeddings_chroma, query_chroma, delete_chroma_collection
-#from vector_store.redis_store import store_embeddings_redis, query_redis, flush_redis_index
+from vector_store.qdrant_store import store_embeddings_qdrant, query_qdrant, delete_qdrant_collection
+from vector_store.redis_store import store_embeddings_redis, query_redis, flush_redis_index
 from sentence_transformers import SentenceTransformer
+
 
 def run_experiment(params, save_to_csv=True, csv_path="results.csv"):
     # Pre-step: Clear vector DB before starting timer
@@ -13,10 +15,21 @@ def run_experiment(params, save_to_csv=True, csv_path="results.csv"):
     if params["vector_db"] == "chroma":
         try:
             delete_chroma_collection(collection_name)
-        except Exception as e:
+            print(f"Deleted Chroma collection '{collection_name}'")
+        except Exception:
             print(f"Collection '{collection_name}' does not exist, skipping delete.")
-    #elif params["vector_db"] == "redis":
-    #    flush_redis_index(collection_name)
+
+    elif params["vector_db"] == "redis":
+        try:
+            flush_redis_index(collection_name)
+        except Exception:
+            print(f"Redis index '{collection_name}' does not exist or failed to delete, skipping.")
+
+    elif params["vector_db"] == "qdrant":
+        try:
+            delete_qdrant_collection(collection_name)
+        except Exception:
+            print(f"Qdrant collection '{collection_name}' does not exist or failed to delete, skipping.")
 
     # Step 1: Ingest and chunk
     t0 = time.time()
@@ -31,17 +44,23 @@ def run_experiment(params, save_to_csv=True, csv_path="results.csv"):
     # Step 2: Embed
     embedded_data = embed_chunks(
         chunked_data,
-        model_key=params["embedding_model"]    
-        )
+        model_key=params["embedding_model"]
+    )
     t2 = time.time()
 
     # Step 3: Store in Vector DB
     if params["vector_db"] == "chroma":
         collection = store_embeddings_chroma(embedded_data, collection_name=collection_name)
-        query_fn = lambda embedding: query_chroma(collection, embedding, top_k=3)["documents"][0]
-    #elif params["vector_db"] == "redis":
-    #    index = store_embeddings_redis(embedded_data, index_name=collection_name)
-    #    query_fn = lambda embedding: query_redis(index, embedding, top_k=5)
+        query_fn = lambda embedding: query_chroma(collection, embedding, top_k=5)["documents"][0]
+    elif params["vector_db"] == "redis":
+        client = None
+        from vector_store.redis_store import create_redis_client
+        client = create_redis_client()
+        store_embeddings_redis(client, embedded_data, index_name=collection_name)
+        query_fn = lambda embedding: query_redis(client, top_k=5, query_embedding=embedding, index_name=collection_name)
+    elif params["vector_db"] == "qdrant":
+        store_embeddings_qdrant(embedded_data, collection_name=collection_name)
+        query_fn = lambda embedding: query_qdrant(collection_name, embedding, top_k=5)
     else:
         raise ValueError("Unsupported vector DB")
     t3 = time.time()
@@ -90,33 +109,3 @@ def run_experiment(params, save_to_csv=True, csv_path="results.csv"):
         df.to_csv(csv_path, index=False)
 
     return llm_answer
-
-
-# Batch experiment runner for ChromaDB only
-
-def run_all_experiments():
-    chunk_sizes = [200, 500, 1000]
-    chunk_overlaps = [0, 50, 100]
-    text_preps = [None, "remove_whitespace", "remove_punctuation", "remove_noise"]
-    embedding_models = ["miniLM", "mpnet", "instructor"]
-    llm_models = ["llama2", "mistral"]
-    test_query = "What is a sparse index?"
-
-    for chunk_size in chunk_sizes:
-        for overlap in chunk_overlaps:
-            for prep in text_preps:
-                for embed_model in embedding_models:
-                    for llm_model in llm_models:
-                        print(("\nRunning experiment with:", chunk_size, overlap, prep, embed_model, llm_model), flush=True)
-                        params = {
-                            "chunk_size": chunk_size,
-                            "chunk_overlap": overlap,
-                            "text_prep": prep,
-                            "embedding_model": embed_model,
-                            "vector_db": "chroma",
-                            "llm_model": llm_model,
-                            "query": test_query
-                        }
-                        run_experiment(params)
-
-run_all_experiments()
