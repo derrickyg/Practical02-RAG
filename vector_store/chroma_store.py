@@ -1,16 +1,15 @@
 # vector_store/chroma_store.py
 
 import chromadb
-from chromadb.config import Settings
 
 def create_chroma_client():
     return chromadb.HttpClient(host="localhost", port=8000)
-
 
 def store_embeddings_chroma(embedded_data, collection_name="ds4300_notes"):
     client = create_chroma_client()
     collection = client.get_or_create_collection(name=collection_name)
 
+    # insert embedded data and metadata to chromadb
     for item in embedded_data:
         collection.add(
             ids=[item["chunk_id"]],
@@ -34,7 +33,5 @@ def delete_chroma_collection(collection_name):
     try:
         client.delete_collection(name=collection_name)
         print(f" Deleted Chroma collection '{collection_name}'")
-    except chromadb.errors.InvalidArgumentError:
-        print(f" Collection '{collection_name}' does not exist, skipping delete.")
     except Exception as e:
         print(f" Failed to delete collection '{collection_name}': {e}")

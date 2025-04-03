@@ -1,38 +1,33 @@
+#scripts/embed.py
+
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import re
 
+# add new models here 
 SUPPORTED_MODELS = {
     "miniLM": "sentence-transformers/all-MiniLM-L6-v2",
     "mpnet": "sentence-transformers/all-mpnet-base-v2",
-    "instructor": "hkunlp/instructor-xl"
+    "BAAI": "BAAI/bge-base-en-v1.5",
 }
 
 
 def load_embedding_model(model_key):
     if model_key not in SUPPORTED_MODELS:
-        raise ValueError(f" Unsupported model key: {model_key}")
+        raise ValueError(f"{model_key} not in SUPPORTED_MODELS (embed.py)")
 
     model_name = SUPPORTED_MODELS[model_key]
-    print(f"Loading model: {model_name}")
     model = SentenceTransformer(model_name)
     return model
-
-
-def get_embedding_input(model_key, text):
-    if model_key == "instructor":
-        return ("Represent the DS4300 course note chunk:", text)
-    return text
-
 
 def embed_chunks(chunked_data, model_key="miniLM"):
     model = load_embedding_model(model_key)
     embedded_data = []
 
+    # save embedded text and metadata
     for chunk in chunked_data:
         chunk_text = chunk["text"]
-        embed_input = get_embedding_input(model_key, chunk_text)
-        embedding = model.encode(embed_input)
+        embedding = model.encode(chunk_text)
 
         embedded_data.append({
             "chunk_id": chunk["chunk_id"],
@@ -41,6 +36,5 @@ def embed_chunks(chunked_data, model_key="miniLM"):
             "embedding": embedding.tolist()
         })
 
-    print(f"Embedded {len(embedded_data)} chunks using model '{model_key}'")
     return embedded_data
 

@@ -2,23 +2,25 @@ from driver import run_experiment
 
 def run_experiments():
     query = "What is a sparse index?"
-    fixed_chunk_size = 500
-    fixed_chunk_overlap = 50
-    text_prep = None
 
-    embedding_models = ["miniLM", "mpnet", "instructor"]
+    # batch1 - testing embedding models, vector_dbs, and llm models while chunks are constant
+    default_chunk_size = 500
+    default_chunk_overlap = 50
+    default_text_prep = None
+
+    embedding_models = ["BAAI","miniLM", "mpnet"]
     vector_dbs = ["chroma", "redis", "qdrant"]
     llm_models = ["tinyllama", "mistral"]
 
-    # Section 1: Baseline - all embeddings, DBs, and LLMs
+
     for embed_model in embedding_models:
         for vector_db in vector_dbs:
             for llm_model in llm_models:
-                print(f"\n[BASELINE] {embed_model} | {vector_db} | {llm_model}", flush=True)
+                print(f"\n[BATCH1] {embed_model} | {vector_db} | {llm_model}", flush=True)
                 params = {
-                    "chunk_size": fixed_chunk_size,
-                    "chunk_overlap": fixed_chunk_overlap,
-                    "text_prep": text_prep,
+                    "chunk_size": default_chunk_size,
+                    "chunk_overlap": default_chunk_overlap,
+                    "text_prep": default_text_prep,
                     "embedding_model": embed_model,
                     "vector_db": vector_db,
                     "llm_model": llm_model,
@@ -26,14 +28,14 @@ def run_experiments():
                 }
                 run_experiment(params)
 
-    # Section 2: Chunk size variation
+    # batch2 - testing chunk sizes while keeping all params constant
     chunk_sizes = [200, 500, 1000]
     for size in chunk_sizes:
-        print(f"\n[CHUNK SIZE TEST] size={size}", flush=True)
+        print(f"\n[BATCH2] size={size}", flush=True)
         params = {
             "chunk_size": size,
-            "chunk_overlap": fixed_chunk_overlap,
-            "text_prep": text_prep,
+            "chunk_overlap": default_chunk_overlap,
+            "text_prep": default_text_prep,
             "embedding_model": "mpnet",
             "vector_db": "chroma",
             "llm_model": "tinyllama",
@@ -41,14 +43,14 @@ def run_experiments():
         }
         run_experiment(params)
 
-    # Section 3: Chunk overlap variation
+    # batch3 - testing chunk overlaps while keeping all params constant
     chunk_overlaps = [0, 50, 100]
     for overlap in chunk_overlaps:
-        print(f"\n[CHUNK OVERLAP TEST] overlap={overlap}", flush=True)
+        print(f"\n[BATCH3] overlap={overlap}", flush=True)
         params = {
-            "chunk_size": fixed_chunk_size,
+            "chunk_size": default_chunk_size,
             "chunk_overlap": overlap,
-            "text_prep": text_prep,
+            "text_prep": default_text_prep,
             "embedding_model": "mpnet",
             "vector_db": "chroma",
             "llm_model": "tinyllama",
@@ -56,13 +58,13 @@ def run_experiments():
         }
         run_experiment(params)
 
-    # Section 4: Text preprocessing strategies
+    # batch4 - testing text processing strategies keeping all params constant
     preps = [None, "remove_whitespace", "remove_punctuation", "remove_noise"]
     for prep in preps:
-        print(f"\n[TEXT PREP TEST] strategy={prep}", flush=True)
+        print(f"\n[BATCH4] strategy={prep}", flush=True)
         params = {
-            "chunk_size": fixed_chunk_size,
-            "chunk_overlap": fixed_chunk_overlap,
+            "chunk_size": default_chunk_size,
+            "chunk_overlap": default_chunk_overlap,
             "text_prep": prep,
             "embedding_model": "mpnet",
             "vector_db": "chroma",
